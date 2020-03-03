@@ -1,0 +1,332 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "0.0.0.0",
+    "parameters": {
+        "appName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the app"
+            }
+        }
+    },
+    "variables": {
+        "location": "[resourceGroup().location]",
+        "rgAppName": "[resourceGroup().name]",
+        "pipNames": [
+            "[concat('pip-fw-',parameters('appName'),'spoke')]",
+            "[concat('pip-agw-',parameters('appName'),'spoke')]"
+        ],
+        "publicIPAllocationMethod": "Static",
+        "vnetSpokeName": "[concat('vn-spoke-',parameters('appName'))]",
+        "vnetSpokeID": "[resourceID('Microsoft.Network/virtualNetworks', variables('vnetSpokeName'))]",
+        "vnetSpokeCIDR": "10.3.0.0/16",
+        "subNetsSpoke": [
+            "[concat('sn-spoke-',parameters('appName'),'-aks-10.3.0.0_24,10.3.0.0/24')]",
+            "AzureFirewallSubnet,10.3.1.0/24",
+            "[concat('sn-spoke-',parameters('appName'),'-svc-10.3.2.0_24,10.3.2.0/24')]",
+            "[concat('sn-spoke-',parameters('appName'),'-agw-10.3.3.0_24,10.3.3.0/24')]",
+            "[concat('sn-spoke-',parameters('appName'),'-ing-10.3.4.0_24,10.3.4.0/24')]",
+            "[concat('sn-spoke-',parameters('appName'),'-aci-10.3.5.0_24,10.3.5.0/24')]"
+        ],
+        "fwName": "[concat('fw-spoke-',parameters('appName'))]",
+        "subNetFwID": "[concat(variables('vnetSpokeID'), '/subnets/', split(variables('subNetsSpoke')[1],',')[0])]",
+        "agwName": "[concat('agw-spoke-',parameters('appName'))]",
+        "subNetAgwID": "[concat(variables('vnetSpokeID'), '/subnets/', split(variables('subNetsSpoke')[3],',')[0])]",
+        "nsgAppName": "[concat('nsg-app-',parameters('appName'))]",
+        "nsgAppRules": [
+            {
+                "name": "default-deny",
+                "protocol": "*",
+                "sourcePortRange": "*",
+                "destinationPortRange": "*",
+                "access": "Deny",
+                "priority": "1000",
+                "direction": "Inbound",
+                "sourceAddressPrefix": "*",
+                "DestinationAddressPrefix": "*"
+            }
+        ],
+        "udrNameApp": "[concat('rt-spoke-',parameters('appName'))]",
+        "laNameApp": "[toLower(concat('la-spoke-', parameters('appName'),'-', uniqueString(resourceGroup().Name) ) )]"
+    },
+    "resources": [
+        {
+            "type": "microsoft.operationalinsights/workspaces",
+            "apiVersion": "2015-11-01-preview",
+            "name": "[variables('laNameApp')]",
+            "location": "[variables('location')]",
+            "properties": {
+                "sku": {
+                    "name": "pergb2018"
+                },
+                "retentionInDays": 30
+            }
+        },
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "[providers('Microsoft.Network', 'publicIPAddresses').apiVersions[0]]",
+            "name": "[variables('pipNames')[copyIndex()]]",
+            "location": "[variables('location')]",
+            "copy": {
+                "name": "pipCopy",
+                "count": "[length(variables('pipNames'))]"
+            },
+            "sku": {
+                "name": "Standard"
+            },
+            "properties": {
+                "publicIPAllocationMethod": "[variables('publicIPAllocationMethod')]"
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "[providers('Microsoft.Network', 'virtualNetworks').apiVersions[0]]",
+            "name": "[variables('vnetSpokeName')]",
+            "location": "[variables('location')]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('vnetSpokeCIDR')]"
+                    ]
+                },
+                "copy": [
+                    {
+                        "name": "subnets",
+                        "count": "[length(variables('subNetsSpoke'))]",
+                        "input": {
+                            "name": "[split(variables('subNetsSpoke')[copyIndex('subnets')], ',')[0]]",
+                            "properties": {
+                                "addressPrefix": "[split(variables('subNetsSpoke')[copyIndex('subnets')], ',')[1]]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "[providers('Microsoft.Network', 'networkSecurityGroups').apiVersions[0]]",
+            "name": "[variables('nsgAppName')]",
+            "location": "[variables('location')]",
+            "properties": {
+                "copy": [
+                    {
+                        "name": "securityRules",
+                        "count": "[length(variables('nsgAppRules'))]",
+                        "input": {
+                            "name": "[variables('nsgAppRules')[copyIndex('securityRules')].name]",
+                            "properties": {
+                                "protocol": "[variables('nsgAppRules')[copyIndex('securityRules')].protocol]",
+                                "sourcePortRange": "[variables('nsgAppRules')[copyIndex('securityRules')].sourcePortRange]",
+                                "destinationPortRange": "[variables('nsgAppRules')[copyIndex('securityRules')].destinationPortRange]",
+                                "access": "[variables('nsgAppRules')[copyIndex('securityRules')].access]",
+                                "priority": "[variables('nsgAppRules')[copyIndex('securityRules')].priority]",
+                                "direction": "[variables('nsgAppRules')[copyIndex('securityRules')].direction]",
+                                "sourceAddressPrefix": "[variables('nsgAppRules')[copyIndex('securityRules')].sourceAddressPrefix]",
+                                "DestinationAddressPrefix": "[variables('nsgAppRules')[copyIndex('securityRules')].DestinationAddressPrefix]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/azureFirewalls",
+            "apiVersion": "[providers('Microsoft.Network', 'azureFirewalls').apiVersions[0]]",
+            "name": "[variables('fwName')]",
+            "location": "[variables('location')]",
+            "dependsOn": [
+                "pipCopy",
+                "[variables('vnetSpokeID')]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig",
+                        "properties": {
+                            "subnet": {
+                                "id": "[variables('subNetFwID')]"
+                            },
+                            "publicIPAddress": {
+                                "id": "[resourceID('Microsoft.Network/publicIPAddresses', variables('pipNames')[0])]"
+                            }
+                        }
+                    }
+                ],
+                "networkRuleCollections": [
+                ],
+                "applicationRuleCollections": [
+                ],
+                "natRuleCollections": [
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/applicationGateways",
+            "apiVersion": "[providers('Microsoft.Network', 'applicationGateways').apiVersions[0]]",
+            "name": "[variables('agwName')]",
+            "location": "[variables('location')]",
+            "tags": {
+                "environment": "production"
+            },
+            "dependsOn": [
+                "[variables('vnetSpokeID')]"
+            ],
+            "properties": {
+                "sku": {
+                    "name": "WAF_v2",
+                    "tier": "WAF_v2"
+                },
+                "gatewayIPConfigurations": [
+                    {
+                        "name": "appGatewayIpConfig",
+                        "properties": {
+                            "subnet": {
+                                "id": "[variables('subNetAgwID')]"
+                            }
+                        }
+                    }
+                ],
+                "sslCertificates": [
+                ],
+                "trustedRootCertificates": [
+                ],
+                "frontendIPConfigurations": [
+                    {
+                        "name": "appGwPublicFrontendIp",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceID('Microsoft.Network/publicIPAddresses', variables('pipNames')[1])]"
+                            }
+                        }
+                    }
+                ],
+                "frontendPorts": [
+                    {
+                        "name": "port_80",
+                        "properties": {
+                            "port": 80
+                        }
+                    }
+                ],
+                "backendAddressPools": [
+                    {
+                        "name": "apgw-backend1",
+                        "properties": {
+                            "backendAddresses": [
+                            ]
+                        }
+                    }
+                ],
+                "backendHttpSettingsCollection": [
+                    {
+                        "name": "httpSettings",
+                        "properties": {
+                            "port": 80,
+                            "protocol": "Http",
+                            "cookieBasedAffinity": "Disabled",
+                            "pickHostNameFromBackendAddress": false,
+                            "requestTimeout": 20
+                        }
+                    }
+                ],
+                "httpListeners": [
+                    {
+                        "name": "agw-be-listener",
+                        "properties": {
+                            "frontendIPConfiguration": {
+                                "id": "[concat(resourceId('Microsoft.Network/applicationGateways', variables('agwName')), '/frontendIPConfigurations/appGwPublicFrontendIp')]"
+                            },
+                            "frontendPort": {
+                                "id": "[concat(resourceId('Microsoft.Network/applicationGateways', variables('agwName')), '/frontendPorts/port_80')]"
+                            },
+                            "protocol": "Http",
+                            "hostNames": [
+                            ],
+                            "requireServerNameIndication": false
+                        }
+                    }
+                ],
+                "urlPathMaps": [
+                ],
+                "requestRoutingRules": [
+                    {
+                        "name": "appGwRoutingRules",
+                        "properties": {
+                            "ruleType": "Basic",
+                            "httpListener": {
+                                "id": "[concat(resourceId('Microsoft.Network/applicationGateways', variables('agwName')), '/httpListeners/agw-be-listener')]"
+                            },
+                            "backendAddressPool": {
+                                "id": "[concat(resourceId('Microsoft.Network/applicationGateways', variables('agwName')), '/backendAddressPools/apgw-backend1')]"
+                            },
+                            "backendHttpSettings": {
+                                "id": "[concat(resourceId('Microsoft.Network/applicationGateways', variables('agwName')), '/backendHttpSettingsCollection/httpSettings')]"
+                            }
+                        }
+                    }
+                ],
+                "probes": [
+                ],
+                "rewriteRuleSets": [
+                ],
+                "redirectConfigurations": [
+                ],
+                "webApplicationFirewallConfiguration": {
+                    "enabled": true,
+                    "firewallMode": "Detection",
+                    "ruleSetType": "OWASP",
+                    "ruleSetVersion": "3.0",
+                    "disabledRuleGroups": [
+                    ],
+                    "requestBodyCheck": true,
+                    "maxRequestBodySizeInKb": 128,
+                    "fileUploadLimitInMb": 100
+                },
+                "enableHttp2": false,
+                "autoscaleConfiguration": {
+                    "minCapacity": 0,
+                    "maxCapacity": 10
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/routeTables",
+            "apiVersion": "[providers('Microsoft.Network', 'routeTables').apiVersions[0]]",
+            "name": "[variables('udrNameApp')]",
+            "location": "[variables('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/azureFirewalls', variables('fwName'))]"
+            ],
+            "properties": {
+                "disableBgpRoutePropagation": false,
+                "routes": [
+                    {
+                        "name": "egress",
+                        "properties": {
+                            "addressPrefix": "0.0.0.0/0",
+                            "nextHopType": "VirtualAppliance",
+                            "nextHopIpAddress": "10.3.1.4"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/routeTables/routes",
+            "apiVersion": "2019-11-01",
+            "name": "[concat(variables('udrNameApp'), '/egress')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/routeTables', variables('udrNameApp'))]"
+            ],
+            "properties": {
+                "addressPrefix": "0.0.0.0/0",
+                "nextHopType": "VirtualAppliance",
+                "nextHopIpAddress": "10.3.1.4"
+            }
+        }
+    ],
+    "outputs": {
+    }
+}
