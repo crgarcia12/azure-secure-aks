@@ -22,6 +22,7 @@ function New-SecureAksFullDeployment {
     New-SecureAksResourceGroup 
     New-SecureAksVNets
     New-SecureAksFirewallDeployment 
+    New-SecureAksServicePrincipal
     New-SecureAksLogAnalyticsDeployment
     New-SecureAksClusterDeployment
     Get-SecureAksClusterCredentials
@@ -38,7 +39,7 @@ function New-SecureAksEnvironmentVariables {
     $Prefix = "crgar-aks-secure"
     $ResourceGroup = "${Prefix}-rg"
     $Location = "eastus"
-    $Name = "${Prefix}20190212"
+    $ClusterName = "${Prefix}20190212"
     $AcrName = "${Name}acr"
     $VnetName = "${Prefix}vnet"
     $AKSSubnetName = "${Prefix}akssubnet"
@@ -252,12 +253,12 @@ function New-SecureAksFirewallDeployment {
         --metrics $metrics
 }
 
-function New-SecureAksLogAnalyticsDeployment {
+function New-SecureAksServicePrincipal {
     [CmdletBinding()]
     param (
-        
+
     )
-    
+
     Write-Verbose "Create SP and Assign Permission to Virtual Network"
     $ServicePrincipalJson = az ad sp create-for-rbac -n "${Prefix}sp" --skip-assignment
     $ServicePrincipal = $ServicePrincipalJson | ConvertFrom-Json
@@ -268,6 +269,14 @@ function New-SecureAksLogAnalyticsDeployment {
     
     Write-Verbose "Assigning SP Permission to VNET"
     az role assignment create --assignee $ServicePrincipal.appId --scope $VnetId --role Contributor
+}
+
+function New-SecureAksLogAnalyticsDeployment {
+    [CmdletBinding()]
+    param (
+        
+    )
+
 
     Write-Verbose "Creating Log Analytics Workspace"
     az group deployment create -n $WorkSpaceName -g $ResourceGroup `
@@ -276,9 +285,10 @@ function New-SecureAksLogAnalyticsDeployment {
         --parameters location=$Location `
         --parameters sku="Standalone"
 
-        Write-Verbose "Seting Workspace ID"
-    $WorkSpaceIdUrl = $(az group deployment list -g $ResourceGroup -o tsv --query '[].properties.outputResources[0].id')
-
+    Write-Verbose "Seting Workspace ID"
+    $deployments = az group deployment list -g $ResourceGroup | Convertfrom-json    
+    $WorkSpaceIdUrl = ($deployments.properties.outputResources | Where-Object -Property id -match "workspaces").id
+    Write-Verbose "Workspace id: '$WorkSpaceIdUrl'"
 }
 
 
@@ -296,7 +306,7 @@ function New-SecureAksClusterDeployment {
 
     Write-Verbose "Creating AKS Cluster with Monitoring add-on using Service Principal '$($ServicePrincipal.name)'"
     az aks create -g $ResourceGroup `
-        -n $Name `
+        -n $ClusterName `
         -k $AksVersion `
         -l $Location `
         --node-count 2 `
@@ -318,12 +328,12 @@ function New-SecureAksClusterDeployment {
     while(!$ClusterReady) {
 
         Start-Sleep -Seconds 1
-        Write-Verbose "Waiting for cluster '$Name' to be created"
+        Write-Verbose "Waiting for cluster '$ClusterName' to be created"
         $clusters = az aks list -o json | ConvertFrom-Json
-        $cluster = $clusters | Where-Object -Property name -EQ $Name
-        $ClusterReady = $cluster.provisioningState -ne "$Creating"
+        $cluster = $clusters | Where-Object -Property name -EQ $ClusterName
+        $ClusterReady = $cluster.provisioningState -ne "Creating"
         
-        Write-Verbose "Cluster '$Name' is in provisioningState '$($cluster.provisioningState)'"
+        Write-Verbose "Cluster '$ClusterName' is in provisioningState '$($cluster.provisioningState)'"
     }
 
     if ($cluster.provisioningState -ne "Succeeded")
@@ -340,7 +350,7 @@ function Get-SecureAksClusterCredentials {
     )
 
     Write-Verbose "Geting AKS Credentials so kubectl works"
-    az aks get-credentials -g $ResourceGroup -n $Name --admin
+    az aks get-credentials -g $ResourceGroup -n $ClusterName --admin
 
     Write-Verbose "Geting Nodes"
     kubectl get nodes -o wide
@@ -430,5 +440,5 @@ function Open-SecureAksDashboard {
         
     )
     
-    az aks browse -g $ResourceGroup -n $Name
+    az aks browse -g $ResourceGroup -n $ClusterName
 }

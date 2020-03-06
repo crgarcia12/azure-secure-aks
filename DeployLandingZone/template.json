@@ -13,26 +13,26 @@
         "location": "[resourceGroup().location]",
         "rgAppName": "[resourceGroup().name]",
         "pipNames": [
-            "[concat('pip-fw-',parameters('appName'),'spoke')]",
-            "[concat('pip-agw-',parameters('appName'),'spoke')]"
+            "[concat(parameters('appName'), '-pip-fw-spoke')]",
+            "[concat(parameters('appName'), '-pip-agw-spoke')]"
         ],
         "publicIPAllocationMethod": "Static",
-        "vnetSpokeName": "[concat('vn-spoke-',parameters('appName'))]",
+        "vnetSpokeName": "[concat(parameters('appName'), '-vn-spoke')]",
         "vnetSpokeID": "[resourceID('Microsoft.Network/virtualNetworks', variables('vnetSpokeName'))]",
         "vnetSpokeCIDR": "10.3.0.0/16",
         "subNetsSpoke": [
-            "[concat('sn-spoke-',parameters('appName'),'-aks-10.3.0.0_24,10.3.0.0/24')]",
+            "[concat(parameters('appName'),'-sn-spoke-aks-10.3.0.0_24,10.3.0.0/24')]",
             "AzureFirewallSubnet,10.3.1.0/24",
-            "[concat('sn-spoke-',parameters('appName'),'-svc-10.3.2.0_24,10.3.2.0/24')]",
-            "[concat('sn-spoke-',parameters('appName'),'-agw-10.3.3.0_24,10.3.3.0/24')]",
-            "[concat('sn-spoke-',parameters('appName'),'-ing-10.3.4.0_24,10.3.4.0/24')]",
-            "[concat('sn-spoke-',parameters('appName'),'-aci-10.3.5.0_24,10.3.5.0/24')]"
+            "[concat(parameters('appName'),'-sn-spoke-svc-10.3.2.0_24,10.3.2.0/24')]",
+            "[concat(parameters('appName'),'-sn-spoke-agw-10.3.3.0_24,10.3.3.0/24')]",
+            "[concat(parameters('appName'),'-sn-spoke-ing-10.3.4.0_24,10.3.4.0/24')]",
+            "[concat(parameters('appName'),'-sn-spoke-aci-10.3.5.0_24,10.3.5.0/24')]"
         ],
-        "fwName": "[concat('fw-spoke-',parameters('appName'))]",
+        "fwName": "[concat(parameters('appName'), '-fw-spoke')]",
         "subNetFwID": "[concat(variables('vnetSpokeID'), '/subnets/', split(variables('subNetsSpoke')[1],',')[0])]",
-        "agwName": "[concat('agw-spoke-',parameters('appName'))]",
+        "agwName": "[concat(parameters('appName'),'-agw-spoke')]",
         "subNetAgwID": "[concat(variables('vnetSpokeID'), '/subnets/', split(variables('subNetsSpoke')[3],',')[0])]",
-        "nsgAppName": "[concat('nsg-app-',parameters('appName'))]",
+        "nsgAppName": "[concat(parameters('appName'),'-nsg-app')]",
         "nsgAppRules": [
             {
                 "name": "default-deny",
@@ -46,8 +46,8 @@
                 "DestinationAddressPrefix": "*"
             }
         ],
-        "udrNameApp": "[concat('rt-spoke-',parameters('appName'))]",
-        "laNameApp": "[toLower(concat('la-spoke-', parameters('appName'),'-', uniqueString(resourceGroup().Name) ) )]"
+        "udrNameApp": "[concat(parameters('appName'),'-rt-spoke')]",
+        "laNameApp": "[toLower(concat(parameters('appName'),'-la-spoke-', uniqueString(resourceGroup().Name) ) )]"
     },
     "resources": [
         {
