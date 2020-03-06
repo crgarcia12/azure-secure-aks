@@ -61,8 +61,8 @@ function New-SecureAksEnvironmentVariables {
     $SubscriptionNAme = "crgar Internal Subscription"
 
 
-    $LogAnalyticsJsonFilePath = "azuredeploy-loganalytics.json"
-    $CentosDeploymentYaml = "./powershellDeployment/centos-deployment.yaml"
+    $LogAnalyticsJsonFilePath = Join-Path (Split-Path $PSCommandPath) 'azuredeploy-loganalytics.json'
+    $CentosDeploymentYaml = Join-Path (Split-Path $PSCommandPath) 'centos-deployment.yaml'
 
 }
 

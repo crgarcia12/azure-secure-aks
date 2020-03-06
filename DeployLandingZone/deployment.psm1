@@ -1,11 +1,14 @@
 function New-SecureAksLandingZone {
     [CmdletBinding()]
     param (
-        [string] $Location = "eastus",
+        [string] $Location = "westeurope",
         [string] $AppName = "crgar-saks-us",
         [string] $SubscriptionName = 'crgar Internal Subscription'
     )    
         
+    $TemplateJsonFilePath = Join-Path (Split-Path $PSCommandPath) 'template.json'
+
+
     $context = Get-AzContext
     if (!$context.Account) {
         Connect-AzAccount -Subscription $SubscriptionName
@@ -18,7 +21,7 @@ function New-SecureAksLandingZone {
     New-AzResourceGroup -Name $ResourceGroupName -Location $Location -Force -ErrorAction SilentlyContinue
     New-AzResourceGroupDeployment  `
         -ResourceGroupName $ResourceGroupName `
-        -TemplateFile 'template.json' `
+        -TemplateFile $TemplateJsonFilePath  `
         -Name "LandingZone" `
         -Mode Incremental `
         -appName $AppName

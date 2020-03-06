@@ -27,7 +27,7 @@ function Do-Everything
     $AgPublicIpName = "${Prefix}-pip-agw-spoke"
     $AksVersion = "1.15.7"
     
-    $CentosDeploymentYaml = "./centos-deployment.yaml"
+    $CentosDeploymentYaml = Join-Path (Split-Path $PSCommandPath) 'centos-deployment.yaml'
 
 
     Write-Verbose "Create SP and Assign Permission to Virtual Network"
