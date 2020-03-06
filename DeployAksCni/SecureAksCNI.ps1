@@ -27,7 +27,7 @@ function Do-Everything
     $AgPublicIpName = "${Prefix}-pip-agw-spoke"
     $AksVersion = "1.15.7"
     
-
+    $CentosDeploymentYaml = "./centos-deployment.yaml"
 
 
     Write-Verbose "Create SP and Assign Permission to Virtual Network"
@@ -90,6 +90,19 @@ function Do-Everything
         Write-Error "Cluster provisioningState is '$($cluster.provisioningState)'. Expected 'Succeeded'"
     }
 
+}
+
+function Get-SecureAksClusterCredentials {
+    [CmdletBinding()]
+    param (
+    
+    )
+
+    Write-Verbose "Geting AKS Credentials so kubectl works"
+    az aks get-credentials -g $ResourceGroup -n $ClusterName --admin
+
+    Write-Verbose "Geting Nodes"
+    kubectl get nodes -o wide
 }
 
 
