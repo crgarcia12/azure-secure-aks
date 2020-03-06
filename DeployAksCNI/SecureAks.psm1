@@ -442,3 +442,7 @@ function Open-SecureAksDashboard {
     
     az aks browse -g $ResourceGroup -n $ClusterName
 }
+
+
+
+Export-ModuleMember *SecureAks*

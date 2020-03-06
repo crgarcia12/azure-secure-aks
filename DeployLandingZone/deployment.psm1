@@ -2,7 +2,7 @@ function New-SecureAksLandingZone {
     [CmdletBinding()]
     param (
         [string] $Location = "westeurope",
-        [string] $AppName = "crgar-saks-us",
+        [string] $AppName = "crgar-saks",
         [string] $SubscriptionName = 'crgar Internal Subscription'
     )    
         
