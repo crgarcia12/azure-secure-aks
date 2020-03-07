@@ -9,6 +9,21 @@ function New-SecureAksToolsInit {
 
 }
 
+function New-SecureAksDeploymentInLandingZone {
+    [CmdletBinding()]
+    param()
+
+    $VerbosePreference = "Continue"
+    Start-Transcript -Path DeploymentLogs.log
+    New-SecureAksEnvironmentVariables
+    New-SecureAksValidations
+    New-SecureAksServicePrincipal
+    New-SecureAksClusterDeployment 
+    Get-SecureAksClusterCredentials
+    Test-SecureAksEgressTraffic
+    Stop-Transcript
+}
+
 
 function New-SecureAksFullDeployment {
     [CmdletBinding()]
@@ -36,33 +51,43 @@ function New-SecureAksEnvironmentVariables {
     [CmdletBinding()]
     param()
 
-    $Prefix = "crgar-aks-secure"
+    # If running from a module, the path of the psm1 file, if running from the console, the path where to find yamls
+    if ($PSCommandPath)
+    {
+        $WorkingPath = Split-Path $PSCommandPath
+    } else {
+        $WorkingPath = "./DeployAksCNI"
+    }
+
+
+    $Prefix = "crgar-saks"
     $ResourceGroup = "${Prefix}-rg"
-    $Location = "eastus"
-    $ClusterName = "${Prefix}20190212"
+    $Location = "westeurope"
+    $SubscriptionNAme = "crgar Internal Subscription"
+    
+    $ClusterName = "${Prefix}cluster"
+    $ServicePrincipalName = "$Prefix-sp"
     $AcrName = "${Name}acr"
-    $VnetName = "${Prefix}vnet"
-    $AKSSubnetName = "${Prefix}akssubnet"
+    $VnetName = "${Prefix}-vn-spoke"
+    $AKSSubnetName = "${Prefix}-sn-spoke-aks-10.3.0.0_24"
     $SvcSubnetName = "${Prefix}svcsubnet"
-    $AciSubnetName = "${Prefix}acisubnet"
+    $AciSubnetName = "${Prefix}-sn-spoke-aci-10.3.5.0_24"
     # DO NOT CHANGE FWSUBNET_NAME - This is currently a requirement for Azure Firewall.
     $FwSubnetName = "AzureFirewallSubnet"
-    $AppGwSubnetName = "${Prefix}appgwsubnet"
+    $AppGwSubnetName = "${Prefix}-sn-spoke-agw-10.3.3.0_24"
     $WorkspaceName = "${Prefix}k8slogs"
     $IdentityName = "${Prefix}identity"
-    $FwName = "${Prefix}fw"
-    $FwPublicIpName = "${Prefix}fwpublicip"
+    $FwName = "${Prefix}-fw-spoke"
+    $FwPublicIpName = "${Prefix}-pip-fw-spoke"
     $FwIpConfigName = "${Prefix}fwconfig"
-    $FwRouteTableName = "${Prefix}fwrt"
+    $FwRouteTableName = "${Prefix}-rt-spoke"
     $FwRouteName = "${Prefix}fwrn"
-    $AgNAme = "${Prefix}ag"
-    $AgPublicIpName = "${Prefix}agpublicip"
+    $AgNAme = "${Prefix}-agw-spoke"
+    $AgPublicIpName = "${Prefix}-pip-agw-spoke"
     $AksVersion = "1.15.7"
-    $SubscriptionNAme = "crgar Internal Subscription"
 
-
-    $LogAnalyticsJsonFilePath = Join-Path (Split-Path $PSCommandPath) 'azuredeploy-loganalytics.json'
-    $CentosDeploymentYaml = Join-Path (Split-Path $PSCommandPath) 'centos-deployment.yaml'
+    $LogAnalyticsJsonFilePath = Join-Path $WorkingPath 'azuredeploy-loganalytics.json'
+    $CentosDeploymentYaml = Join-Path $WorkingPath 'centos-deployment.yaml'
 
 }
 
@@ -72,7 +97,7 @@ function New-SecureAksValidations {
         
     )
 
-    if (!Test-Path $LogAnalyticsJsonFilePath) {
+    if (!(Test-Path $LogAnalyticsJsonFilePath)) {
         Write-Error "Log Analytics deployment json not found in '$LogAnalyticsJsonFilePath'. Are you running this from the right path?"
     }
 
@@ -262,7 +287,7 @@ function New-SecureAksServicePrincipal {
     Write-Verbose "Create SP and Assign Permission to Virtual Network"
     $ServicePrincipalJson = az ad sp create-for-rbac -n "${Prefix}sp" --skip-assignment
     $ServicePrincipal = $ServicePrincipalJson | ConvertFrom-Json
-    Write-Verbose $ServicePrincipalJson
+    Write-Verbose ($ServicePrincipalJson | Out-String)
 
     Write-Verbose "Getting the VNet ID"
     $VnetId = $(az network vnet show -g $ResourceGroup --name $VnetName --query id -o tsv)
@@ -285,10 +310,6 @@ function New-SecureAksLogAnalyticsDeployment {
         --parameters location=$Location `
         --parameters sku="Standalone"
 
-    Write-Verbose "Seting Workspace ID"
-    $deployments = az group deployment list -g $ResourceGroup | Convertfrom-json    
-    $WorkSpaceIdUrl = ($deployments.properties.outputResources | Where-Object -Property id -match "workspaces").id
-    Write-Verbose "Workspace id: '$WorkSpaceIdUrl'"
 }
 
 
@@ -301,8 +322,14 @@ function New-SecureAksClusterDeployment {
     Write-Verbose "Available versions:"
     az aks get-versions -l $Location -o table
 
-    Write-Verbose "Populate the AKS Subnet ID - This is needed so we know which subnet to put AKS into"
+    Write-Verbose "Populate the AKS Subnet ID"
     $SubnetId = $(az network vnet subnet show -g $ResourceGroup --vnet-name $VnetName --name $AKSSubnetName --query id -o tsv)
+    Write-Verbose "Subnet '$SubnetId' will be used to allocate AKS"
+
+    Write-Verbose "Seting Workspace ID"
+    $deployments = az group deployment list -g $ResourceGroup | Convertfrom-json    
+    $WorkSpaceIdUrl = ($deployments.properties.outputResources | Where-Object -Property id -match "workspaces").id
+    Write-Verbose "Workspace id: '$WorkSpaceIdUrl'"
 
     Write-Verbose "Creating AKS Cluster with Monitoring add-on using Service Principal '$($ServicePrincipal.name)'"
     az aks create -g $ResourceGroup `
