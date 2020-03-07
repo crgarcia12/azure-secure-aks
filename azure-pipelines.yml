@@ -1,0 +1,44 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- master
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- script: echo Hello, world!
+  displayName: 'Run a one-line script'
+
+- script: |
+    echo Add other tasks to build, test, and deploy your project.
+    echo See https://aka.ms/yaml
+  displayName: 'Run a multi-line script'
+- task: ImportDeploymentModules
+  inputs:
+    azureSubscription: 'crgar Internal Subscription(930c11b0-5e6d-458f-b9e3-f3dda0734110)'
+    ScriptType: 'InlineScript'
+    Inline: |
+      Import-Module ./DeployLandingZone.psm1
+      Import-Module ./DeployAksCni.psm1
+    azurePowerShellVersion: 'LatestVersion'
+    pwsh: true
+- task: DeployLandingZone
+  inputs:
+    azureSubscription: 'crgar Internal Subscription(930c11b0-5e6d-458f-b9e3-f3dda0734110)'
+    ScriptType: 'InlineScript'
+    Inline: |
+      New-SecureAksLandingZone
+    azurePowerShellVersion: 'LatestVersion'
+    pwsh: true
+- task: DeployAksCluster
+  inputs:
+    azureSubscription: 'crgar Internal Subscription(930c11b0-5e6d-458f-b9e3-f3dda0734110)'
+    ScriptType: 'InlineScript'
+    Inline: |
+      New-SecureAksDeploymentInLandingZone
+    azurePowerShellVersion: 'LatestVersion'
+    pwsh: true
