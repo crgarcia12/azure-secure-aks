@@ -54,40 +54,40 @@ function New-SecureAksEnvironmentVariables {
     # If running from a module, the path of the psm1 file, if running from the console, the path where to find yamls
     if ($PSCommandPath)
     {
-        $WorkingPath = Split-Path $PSCommandPath
+        Set-Variable -Name DeployAksCniModulePath -Value Split-Path $PSCommandPath
     } else {
-        $WorkingPath = "./DeployAksCNI"
+        Set-Variable -Name DeployAksCniModulePath -Value "./DeployAksCni"
     }
 
 
-    $Prefix = "crgar-saks"
-    $ResourceGroup = "${Prefix}-rg"
-    $Location = "westeurope"
-    $SubscriptionNAme = "crgar Internal Subscription"
+    Set-Variable -Name Prefix -Value "crgar-saks-eu" -Scope Global -Verbose
+    Set-Variable -Name ResourceGroup -Value "${Prefix}-rg" -Scope Global -Verbose
+    Set-Variable -Name Location -Value "westeurope" -Scope Global -Verbose
+    Set-Variable -Name SubscriptionNAme -Value "crgar Internal Subscription" -Scope Global -Verbose
     
-    $ClusterName = "${Prefix}cluster"
-    $ServicePrincipalName = "$Prefix-sp"
-    $AcrName = "${Name}acr"
-    $VnetName = "${Prefix}-vn-spoke"
-    $AKSSubnetName = "${Prefix}-sn-spoke-aks-10.3.0.0_24"
-    $SvcSubnetName = "${Prefix}svcsubnet"
-    $AciSubnetName = "${Prefix}-sn-spoke-aci-10.3.5.0_24"
+    Set-Variable -Name ClusterName -Value "${Prefix}-aks" -Scope Global -Verbose
+    Set-Variable -Name ServicePrincipalName -Value "$Prefix-sp" -Scope Global -Verbose
+    Set-Variable -Name AcrName -Value "${Name}acr" -Scope Global -Verbose
+    Set-Variable -Name VnetName -Value "${Prefix}-vn-spoke" -Scope Global -Verbose
+    Set-Variable -Name AKSSubnetName -Value "${Prefix}-sn-spoke-aks-10.3.0.0_24" -Scope Global -Verbose
+    Set-Variable -Name SvcSubnetName -Value "${Prefix}svcsubnet" -Scope Global -Verbose
+    Set-Variable -Name AciSubnetName -Value "${Prefix}-sn-spoke-aci-10.3.5.0_24" -Scope Global -Verbose
     # DO NOT CHANGE FWSUBNET_NAME - This is currently a requirement for Azure Firewall.
-    $FwSubnetName = "AzureFirewallSubnet"
-    $AppGwSubnetName = "${Prefix}-sn-spoke-agw-10.3.3.0_24"
-    $WorkspaceName = "${Prefix}k8slogs"
-    $IdentityName = "${Prefix}identity"
-    $FwName = "${Prefix}-fw-spoke"
-    $FwPublicIpName = "${Prefix}-pip-fw-spoke"
-    $FwIpConfigName = "${Prefix}fwconfig"
-    $FwRouteTableName = "${Prefix}-rt-spoke"
-    $FwRouteName = "${Prefix}fwrn"
-    $AgNAme = "${Prefix}-agw-spoke"
-    $AgPublicIpName = "${Prefix}-pip-agw-spoke"
-    $AksVersion = "1.15.7"
+    Set-Variable -Name FwSubnetName -Value "AzureFirewallSubnet" -Scope Global -Verbose
+    Set-Variable -Name AppGwSubnetName -Value "${Prefix}-sn-spoke-agw-10.3.3.0_24" -Scope Global -Verbose
+    Set-Variable -Name WorkspaceName -Value "${Prefix}k8slogs" -Scope Global -Verbose
+    Set-Variable -Name IdentityName -Value "${Prefix}identity" -Scope Global -Verbose
+    Set-Variable -Name FwName -Value "${Prefix}-fw-spoke" -Scope Global -Verbose
+    Set-Variable -Name FwPublicIpName -Value "${Prefix}-pip-fw-spoke" -Scope Global -Verbose
+    Set-Variable -Name FwIpConfigName -Value "${Prefix}fwconfig" -Scope Global -Verbose
+    Set-Variable -Name FwRouteTableName -Value "${Prefix}-rt-spoke" -Scope Global -Verbose
+    Set-Variable -Name FwRouteName -Value "${Prefix}fwrn" -Scope Global -Verbose
+    Set-Variable -Name AgNAme -Value "${Prefix}-agw-spoke" -Scope Global -Verbose
+    Set-Variable -Name AgPublicIpName -Value "${Prefix}-pip-agw-spoke" -Scope Global -Verbose
+    Set-Variable -Name AksVersion -Value "1.15.7" -Scope Global -Verbose
 
-    $LogAnalyticsJsonFilePath = Join-Path $WorkingPath 'azuredeploy-loganalytics.json'
-    $CentosDeploymentYaml = Join-Path $WorkingPath 'centos-deployment.yaml'
+    Set-Variable -Name LogAnalyticsJsonFilePath -Value (Join-Path $DeployAksCniModulePath 'azuredeploy-loganalytics.json') -Scope Global -Verbose
+    Set-Variable -Name CentosDeploymentYaml -Value (Join-Path $DeployAksCniModulePath 'centos-deployment.yaml') -Scope Global -Verbose
 
 }
 
