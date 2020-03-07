@@ -23,8 +23,8 @@ steps:
     ScriptType: 'InlineScript'
     Inline: |
       # Import deployment modules
-      Import-Module ./DeployLandingZone.psm1
-      Import-Module ./DeployAksCni.psm1
+      Import-Module ./DeployLandingZone/deployment.psm1
+      Import-Module ./DeployAksCni/SecureAks.psm1
     azurePowerShellVersion: 'LatestVersion'
     pwsh: true
 - task: AzurePowerShell@5
