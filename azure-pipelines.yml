@@ -20,13 +20,12 @@ steps:
 - task: AzureCLI@2
   inputs:
     azureSubscription: 'crgar Internal Subscription(930c11b0-5e6d-458f-b9e3-f3dda0734110)'
-    scriptType: 'bash'
+    scriptType: 'ps'
     scriptLocation: 'inlineScript'
     inlineScript: |
-      az account show
-      powershell
       Import-Module ./DeployAksCni/SecureAks.psm1 -Verbose -Force
       New-SecureAksDeploymentInLandingZone -Verbose
+
 # - task: AzurePowerShell@5
 #   inputs:
 #     azureSubscription: 'crgar Internal Subscription(930c11b0-5e6d-458f-b9e3-f3dda0734110)'
@@ -36,12 +35,12 @@ steps:
 #       New-SecureAksLandingZone -Verbose
 #     azurePowerShellVersion: 'LatestVersion'
 #     pwsh: true
-- task: AzurePowerShell@5
+
+- task: AzureCLI@2
   inputs:
     azureSubscription: 'crgar Internal Subscription(930c11b0-5e6d-458f-b9e3-f3dda0734110)'
-    ScriptType: 'InlineScript'
-    Inline: |
+    scriptType: 'ps'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
       Import-Module ./DeployAksCni/SecureAks.psm1 -Verbose -Force
       New-SecureAksDeploymentInLandingZone -Verbose
-    azurePowerShellVersion: 'LatestVersion'
-    pwsh: true
