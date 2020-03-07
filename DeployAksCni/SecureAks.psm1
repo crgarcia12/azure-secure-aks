@@ -14,14 +14,16 @@ function New-SecureAksDeploymentInLandingZone {
     param()
 
     $VerbosePreference = "Continue"
-    Start-Transcript -Path DeploymentLogs.log
+    #Start-Transcript -Path DeploymentLogs.log
+    
     New-SecureAksEnvironmentVariables
     New-SecureAksValidations
     New-SecureAksServicePrincipal
     New-SecureAksClusterDeployment 
     Get-SecureAksClusterCredentials
     Test-SecureAksEgressTraffic
-    Stop-Transcript
+    
+    #Stop-Transcript
 }
 
 
@@ -54,9 +56,9 @@ function New-SecureAksEnvironmentVariables {
     # If running from a module, the path of the psm1 file, if running from the console, the path where to find yamls
     if ($PSCommandPath)
     {
-        Set-Variable -Name DeployAksCniModulePath -Value Split-Path $PSCommandPath
+        Set-Variable -Name DeployAksCniModulePath -Value (Split-Path $PSCommandPath) -Scope Global -Verbose
     } else {
-        Set-Variable -Name DeployAksCniModulePath -Value "./DeployAksCni"
+        Set-Variable -Name DeployAksCniModulePath -Value "./DeployAksCni" -Scope Global -Verbose
     }
 
 
