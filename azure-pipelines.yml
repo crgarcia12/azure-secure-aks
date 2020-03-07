@@ -22,7 +22,11 @@ steps:
     azureSubscription: 'crgar Internal Subscription(930c11b0-5e6d-458f-b9e3-f3dda0734110)'
     scriptType: 'bash'
     scriptLocation: 'inlineScript'
-    inlineScript: 'az account show'
+    inlineScript: |
+      az account show
+      powershell
+      Import-Module ./DeployAksCni/SecureAks.psm1 -Verbose -Force
+      New-SecureAksDeploymentInLandingZone -Verbose
 # - task: AzurePowerShell@5
 #   inputs:
 #     azureSubscription: 'crgar Internal Subscription(930c11b0-5e6d-458f-b9e3-f3dda0734110)'
