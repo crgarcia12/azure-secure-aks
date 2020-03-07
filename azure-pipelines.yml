@@ -17,16 +17,17 @@ steps:
     echo Add other tasks to build, test, and deploy your project.
     echo See https://aka.ms/yaml
   displayName: 'Run a multi-line script'
-- task: ImportDeploymentModules
+- task: AzurePowerShell@5
   inputs:
     azureSubscription: 'crgar Internal Subscription(930c11b0-5e6d-458f-b9e3-f3dda0734110)'
     ScriptType: 'InlineScript'
     Inline: |
+      # Import deployment modules
       Import-Module ./DeployLandingZone.psm1
       Import-Module ./DeployAksCni.psm1
     azurePowerShellVersion: 'LatestVersion'
     pwsh: true
-- task: DeployLandingZone
+- task: AzurePowerShell@5
   inputs:
     azureSubscription: 'crgar Internal Subscription(930c11b0-5e6d-458f-b9e3-f3dda0734110)'
     ScriptType: 'InlineScript'
@@ -34,7 +35,7 @@ steps:
       New-SecureAksLandingZone
     azurePowerShellVersion: 'LatestVersion'
     pwsh: true
-- task: DeployAksCluster
+- task: AzurePowerShell@5
   inputs:
     azureSubscription: 'crgar Internal Subscription(930c11b0-5e6d-458f-b9e3-f3dda0734110)'
     ScriptType: 'InlineScript'
