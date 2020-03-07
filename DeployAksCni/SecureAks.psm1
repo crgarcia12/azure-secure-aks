@@ -16,12 +16,12 @@ function New-SecureAksDeploymentInLandingZone {
     $VerbosePreference = "Continue"
     #Start-Transcript -Path DeploymentLogs.log
     
-    New-SecureAksEnvironmentVariables
-    New-SecureAksValidations
-    New-SecureAksServicePrincipal
-    New-SecureAksClusterDeployment 
-    Get-SecureAksClusterCredentials
-    Test-SecureAksEgressTraffic
+    New-SecureAksEnvironmentVariables -Verbose
+    New-SecureAksValidations -Verbose
+    New-SecureAksServicePrincipal -Verbose
+    New-SecureAksClusterDeployment -Verbose
+    Get-SecureAksClusterCredentials -Verbose
+    Test-SecureAksEgressTraffic -Verbose 
     
     #Stop-Transcript
 }
