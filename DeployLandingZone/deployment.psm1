@@ -9,9 +9,9 @@ function New-SecureAksLandingZone {
     $TemplateJsonFilePath = Join-Path (Split-Path $PSCommandPath) 'template.json'
 
 
-    $context = Get-AzContext
-    if (!$context.Account) {
-        Connect-AzAccount -Subscription $SubscriptionName
+    $context = (az account show | ConvertFrom-Json).name
+    if (!$context) {
+        az login
     }
 
     # we don't want to deploy somewhere else
