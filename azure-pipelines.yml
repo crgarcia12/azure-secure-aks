@@ -23,8 +23,17 @@ steps:
     scriptType: 'pscore'
     scriptLocation: 'inlineScript'
     inlineScript: |
+      Install-Module Az -Force -confirm:$false -AllowClobber
+    useGlobalConfig: true
+
+- task: AzureCLI@2
+  inputs:
+    azureSubscription: 'crgar Internal Subscription(930c11b0-5e6d-458f-b9e3-f3dda0734110)'
+    scriptType: 'pscore'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
       Import-Module ./DeployLandingZone/deployment.psm1 -Verbose -Force
-            New-SecureAksLandingZone -Verbose
+      New-SecureAksLandingZone -Verbose
     useGlobalConfig: true
 
 - task: AzureCLI@2
@@ -35,3 +44,4 @@ steps:
     inlineScript: |
       Import-Module ./DeployAksCni/SecureAks.psm1 -Verbose -Force
       New-SecureAksDeploymentInLandingZone -Verbose
+    useGlobalConfig: true
