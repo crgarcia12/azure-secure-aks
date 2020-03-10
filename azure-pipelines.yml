@@ -24,7 +24,8 @@ steps:
     scriptLocation: 'inlineScript'
     inlineScript: |
       Import-Module ./DeployLandingZone/deployment.psm1 -Verbose -Force
-      New-SecureAksLandingZone -Verbose
+            New-SecureAksLandingZone -Verbose
+    useGlobalConfig: true
 
 - task: AzureCLI@2
   inputs:
