@@ -28,7 +28,7 @@ steps:
       $password = ConvertTo-SecureString $env:servicePrincipalKey -AsPlainText -Force
       $cred = New-Object System.Management.Automation.PSCredential( $env:servicePrincipalId, $password)
       dir env: | out-string | write-verbose -Verbose
-      Login-AzAccount -Credential $cred -ServicePrincipal -Subscription $env:SubscriptionId -Tenant $env:TenantId
+      Login-AzAccount -Credential $cred -ServicePrincipal -Subscription "crgar Internal Subscription" -Tenant $env:TenantId
     addSpnToEnvironment: true
     useGlobalConfig: true
 
